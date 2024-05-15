@@ -34,6 +34,9 @@ def save_incident(incident, agent, xml_file):
     if not incident or "INC" not in incident.upper():
         messagebox.showerror("Erreur", "Le champ 'Incident' doit contenir 'INC' et ne peut être vide.")
         return
+    if not agent:
+        messagebox.showerror("Erreur", "Veuillez sélectionner un agent.")
+        return
     
     tree = ET.parse(xml_file)
     root = tree.getroot()
@@ -131,12 +134,16 @@ def select_item(event):
         entry_incident.insert(0, item_values[0])
         combo_agent.set(item_values[1])
 
+def refresh_display(xml_file):
+    display_records(xml_file)
+    display_agent_stats(xml_file)
+    window.after(5000, refresh_display, xml_file)  # Schedule next refresh
+
 def init_gui(xml_file):
-    global window
+    global window, combo_agent, tree, incident_id, entry_incident, lbl_agent_stats
     window = tk.Tk()
     window.title("Gestion des Incidents")
 
-    global lbl_agent_stats
     lbl_agent_stats = tk.Label(window, text="")
     lbl_agent_stats.grid(column=0, row=0, columnspan=2, sticky="w")
 
@@ -146,15 +153,14 @@ def init_gui(xml_file):
     lbl_incident = tk.Label(window, text="Incident:")
     lbl_incident.grid(column=0, row=1)
 
-    global entry_incident
     entry_incident = tk.Entry(window)
     entry_incident.grid(column=1, row=1)
 
     lbl_agent = tk.Label(window, text="Agent:")
     lbl_agent.grid(column=0, row=2)
 
-    global combo_agent
     combo_agent = ttk.Combobox(window, values=["Agent 1", "Agent 2", "Agent 3", "Agent 4"], state="readonly")
+    combo_agent.set("Agent 1")  # Set default value to Gwendal
     combo_agent.grid(column=1, row=2)
 
     btn_save = tk.Button(window, text="Enregistrer", command=lambda: save_incident(entry_incident.get(), combo_agent.get(), xml_file))
@@ -163,7 +169,6 @@ def init_gui(xml_file):
     btn_delete = tk.Button(window, text="Supprimer", command=lambda: delete_record(xml_file))
     btn_delete.grid(column=1, row=4)
 
-    global tree
     tree = ttk.Treeview(window, columns=("Incident", "Agent", "DateTime"), show="headings")
     tree.heading("Incident", text="Incident")
     tree.heading("Agent", text="Agent")
@@ -172,11 +177,12 @@ def init_gui(xml_file):
 
     tree.bind('<ButtonRelease-1>', select_item)
 
-    global incident_id
     incident_id = tk.StringVar()
 
     display_records(xml_file)
     display_agent_stats(xml_file)
+    
+    window.after(5000, refresh_display, xml_file)  # Start the refresh routine
 
     window.mainloop()
 
